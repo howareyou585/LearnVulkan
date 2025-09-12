@@ -3,8 +3,8 @@
 
 #include <iostream>
 #include <string>
-#define GLFW_INCLUDE_VULKAN
-#include <glfw/glfw3.h>
+ #define GLFW_INCLUDE_VULKAN
+ #include "glfw/glfw3.h"
 using namespace std;
 struct windowInfo
 {
@@ -19,15 +19,16 @@ public:
     Test(windowInfo wi);
     ~Test();
 
-private:
+public:
     void initWindow();
-
-private:
+    void run();
     void cleanupWindow();
+private:
+    
     void cleanupAll();
 
 private:
-    windowInfo m_wininfo;
-    GLFWwindow *m_window;
+     windowInfo m_wininfo;
+     GLFWwindow *m_window;
 };
 #endif // !

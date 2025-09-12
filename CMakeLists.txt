@@ -18,7 +18,6 @@ target_compile_features(cxx_std INTERFACE cxx_std_17)
 aux_source_directory(./src SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_include_directories(${PROJECT_NAME} PUBLIC ./vulkan/include ./glfw/include ./include)
-target_include_directories(${PROJECT_NAME} PUBLIC)
 target_link_directories(${PROJECT_NAME} PUBLIC ./glfw/lib)
 target_link_libraries(${PROJECT_NAME} PUBLIC cxx_std glfw3 vulkan-1)
 
