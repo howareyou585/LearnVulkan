@@ -23,6 +23,7 @@ public:
     void initWindow();
     void run();
     void cleanupWindow();
+    void initVulkan();
 private:
     
     void cleanupAll();
@@ -30,5 +31,6 @@ private:
 private:
      windowInfo m_wininfo;
      GLFWwindow *m_window;
+     VkInstance m_vkInstance; 
 };
 #endif // !
