@@ -1,9 +1,8 @@
 #include "testVulkan.hpp"
 #include <vector>
 #include <cstring>
-const std::vector<const char*>LayerNames= {
-    "VK_LAYER_KHRONOS_validation"
-};
+const std::vector<const char *> LayerNames = {
+    "VK_LAYER_KHRONOS_validation"};
 Test::Test() : Test({1280, 1080, "triangle"})
 {
 }
@@ -11,7 +10,7 @@ Test::Test(windowInfo wi) : m_wininfo(wi), m_window(nullptr)
 {
     // 初始化window
     initWindow();
-     // 初始化Vulkan
+    // 初始化Vulkan
     initVulkan();
 }
 Test::~Test()
@@ -36,6 +35,11 @@ void Test::initWindow()
 
 void Test::initVulkan()
 {
+    createInstance();
+    setupMessenger();
+}
+void Test::createInstance()
+{
     if (enableValidationLayer && !checkValidationLayerSupport())
     {
         throw runtime_error("validation layer is not available!");
@@ -51,11 +55,17 @@ void Test::initVulkan()
 
     uint32_t glfwExtensionCount;
     const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    std::vector<const char *> Extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    if (enableValidationLayer)
+    {
+        Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = glfwExtensionCount;
-    createInfo.ppEnabledExtensionNames = glfwExtensions;
+    createInfo.enabledExtensionCount = Extensions.size();
+    createInfo.ppEnabledExtensionNames = Extensions.data();
     if (enableValidationLayer)
     {
         createInfo.enabledLayerCount = static_cast<uint32_t>(LayerNames.size());
@@ -99,7 +109,7 @@ bool Test::checkValidationLayerSupport()
         bool layerFound = false;
         for (const auto &layerProperty : availableLayerProperties)
         {
-            if (strcmp(layerName, layerProperty.layerName)==0)
+            if (strcmp(layerName, layerProperty.layerName) == 0)
             {
                 layerFound = true;
                 break;
@@ -121,6 +131,10 @@ void Test::run()
 }
 void Test::cleanupWindow()
 {
+    if(enableValidationLayer)
+    {
+        destroyDebugUtilsMessenger(m_vkInstance,m_debugMessengerExt,nullptr);
+    }
     vkDestroyInstance(m_vkInstance, nullptr); // 放在前面
     glfwDestroyWindow(m_window);
     glfwTerminate();
@@ -129,4 +143,57 @@ void Test::cleanupWindow()
 void Test::cleanupAll()
 {
     cleanupWindow();
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL Test::debugCallBack(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT *messengerData,
+    void *pUserData)
+{
+    //     typedef VkBool32 (VKAPI_PTR *PFN_vkDebugUtilsMessengerCallbackEXT)(
+    // VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+    // VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+    // const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+    // void*                                            pUserData);
+}
+
+void Test::setupMessenger()
+{
+}
+void Test::populateDebugUtilsMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &debugUtilsMessenger)
+{
+    debugUtilsMessenger = {};
+    debugUtilsMessenger.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugUtilsMessenger.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+    debugUtilsMessenger.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+                                      VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debugUtilsMessenger.pfnUserCallback = debugCallBack;
+    debugUtilsMessenger.pUserData = nullptr;
+}
+
+VkResult Test::createDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT *createInfo,
+                                     VkAllocationCallbacks *allocation, VkDebugUtilsMessengerEXT *debugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    if(func==nullptr)
+    {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+    else
+    {
+        return func(instance, createInfo, allocation, debugMessenger);
+    }   
+}
+void Test::destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, VkAllocationCallbacks *allocation)
+{
+    //PFN_vkDestroyDebugUtilsMessengerEXT
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    if(func)
+    {
+        func(instance, debugMessenger, allocation);
+    }   
 }
