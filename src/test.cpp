@@ -10,8 +10,7 @@ int main()
 {
 
     Test test;
-    test.initWindow();
-    test.initVulkan();
+    
     test.run();
     //test.cleanupWindow();不需要调用，析构函数会处理
     // if(glfwInit()==GLFW_FALSE)

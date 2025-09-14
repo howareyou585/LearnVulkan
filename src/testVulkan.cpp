@@ -1,9 +1,18 @@
 #include "testVulkan.hpp"
+#include <vector>
+#include <cstring>
+const std::vector<const char*>LayerNames= {
+    "VK_LAYER_KHRONOS_validation"
+};
 Test::Test() : Test({1280, 1080, "triangle"})
 {
 }
 Test::Test(windowInfo wi) : m_wininfo(wi), m_window(nullptr)
 {
+    // 初始化window
+    initWindow();
+     // 初始化Vulkan
+    initVulkan();
 }
 Test::~Test()
 {
@@ -27,44 +36,81 @@ void Test::initWindow()
 
 void Test::initVulkan()
 {
-    VkApplicationInfo appInfo;
+    if (enableValidationLayer && !checkValidationLayerSupport())
+    {
+        throw runtime_error("validation layer is not available!");
+    }
+
+    VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Vulkan";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1,0,0);
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_4;
     appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1,0,0);
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
     uint32_t glfwExtensionCount;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
-
+    if (enableValidationLayer)
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(LayerNames.size());
+        createInfo.ppEnabledLayerNames = LayerNames.data();
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+        createInfo.ppEnabledLayerNames = nullptr;
+    }
     // for(int index = 0; index < glfwExtensionCount; index++)
     // {
     //     std::cout<< *(glfwExtensions+index)<< std::endl;
     // }
-    VkResult res = vkCreateInstance(&createInfo,nullptr,&m_vkInstance);
-    if(res != VkResult::VK_SUCCESS)
+    VkResult res = vkCreateInstance(&createInfo, nullptr, &m_vkInstance);
+    if (res != VkResult::VK_SUCCESS)
     {
         switch (res)
         {
         case VkResult::VK_ERROR_INCOMPATIBLE_DRIVER:
             /* code */
-            std::cout<<"driver desn't support vulkan!"<<std::endl;
+            std::cout << "driver desn't support vulkan!" << std::endl;
             break;
         case VkResult::VK_ERROR_EXTENSION_NOT_PRESENT:
-            std::cout<<"vulkan couldn't support extensions you provided!"<<std::endl;
+            std::cout << "vulkan couldn't support extensions you provided!" << std::endl;
             break;
         default:
-        std::cout<<"unknown error"<<std::endl;
+            std::cout << "unknown error" << std::endl;
             break;
         }
         throw std::runtime_error("failed to create vkInstance");
     }
+}
+bool Test::checkValidationLayerSupport()
+{
+    vkEnumerateInstanceLayerProperties(&m_avaliableLayerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayerProperties(m_avaliableLayerCount);
+    vkEnumerateInstanceLayerProperties(&m_avaliableLayerCount, availableLayerProperties.data());
+    for (const char *layerName : LayerNames)
+    {
+        bool layerFound = false;
+        for (const auto &layerProperty : availableLayerProperties)
+        {
+            if (strcmp(layerName, layerProperty.layerName)==0)
+            {
+                layerFound = true;
+                break;
+            }
+        }
+        if (!layerFound)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 void Test::run()
 {
@@ -75,10 +121,9 @@ void Test::run()
 }
 void Test::cleanupWindow()
 {
-    vkDestroyInstance(m_vkInstance,nullptr);//放在前面
+    vkDestroyInstance(m_vkInstance, nullptr); // 放在前面
     glfwDestroyWindow(m_window);
     glfwTerminate();
-    
 }
 
 void Test::cleanupAll()
